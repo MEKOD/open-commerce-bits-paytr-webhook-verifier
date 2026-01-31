@@ -2,8 +2,8 @@
 import crypto from "node:crypto";
 
 const REPLAY_WINDOW_MS = 5 * 60 * 1000; // 5 dk
-const seenFingerprint = new Map<string, number>(); // kısa süreli raw replay guard
-const seenOid = new Map<string, number>(); // idempotency (merchant_oid)
+const seenFingerprint = new Map<string, number>(); 
+const seenOid = new Map<string, number>(); 
 
 function timingSafeCompare(a: string, b: string) {
   try {
@@ -20,11 +20,7 @@ function hmacBase64(data: string, key: string) {
   return crypto.createHmac("sha256", key).update(data, "utf8").digest("base64");
 }
 
-/**
- * PayTR hash baz metni.
- * Varsayılan sıra örnektir; PAYTR_HASH_FIELDS ile **dokümandaki kesin sırayı** ver:
- *   PAYTR_HASH_FIELDS="merchant_oid,status,total_amount"
- */
+
 function buildHashBaseFromBody(body: Record<string, any>, salt: string) {
   const DEFAULT_ORDER = ["merchant_oid", "status", "total_amount"]; // örnek
   const orderEnv = process.env.PAYTR_HASH_FIELDS;
@@ -42,11 +38,10 @@ export function verifyPaytr(req: any, res: any, next: any) {
   const salt = process.env.PAYTR_MERCHANT_SALT || "";
   if (!key || !salt) return res.status(500).send("misconfig");
 
-  // Hash genelde body.hash ile gelir; bazı kurulumlarda header kullanılabilir
   const provided: string | undefined = req.body?.hash || req.get("X-Paytr-Hash");
   if (!provided) return res.status(400).send("missing hash");
 
-  // HMAC doğrulama (doküman sırasına göre base oluştur)
+  // HMAC doğrulama 
   const base = buildHashBaseFromBody(req.body ?? {}, salt);
   const calc = hmacBase64(base, key);
   if (!timingSafeCompare(calc, provided)) return res.status(400).send("bad signature");
